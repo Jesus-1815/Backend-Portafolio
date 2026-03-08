@@ -4,29 +4,44 @@ import smtplib
 from email.mime.text import MIMEText
 import os
 
+app = Flask(__name__)
+
+# ✅ CORS DEBE ESTAR AQUÍ, antes de las rutas
+CORS(app, resources={
+    r"/send-email": {
+        "origins": "*",
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-app = Flask(__name__)
-CORS(app)
 
 @app.route("/")
 def home():
     return "Backend funcionando"
 
-@app.route("/send-email", methods=["POST","OPTIONS"])
+@app.route("/send-email", methods=["POST", "OPTIONS"])
 def send_email():
-
+    # ✅ Manejo explícito de preflight
     if request.method == "OPTIONS":
-        return jsonify({"ok": True})
+        return jsonify({"ok": True}), 200
 
     try:
-        data = request.json
+        data = request.get_json()
 
-        name = data["name"]
-        email = data["email"]
-        subject = data["subject"]
-        message = data["message"]
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        name = data.get("name", "")
+        email = data.get("email", "")
+        subject = data.get("subject", "")
+        message = data.get("message", "")
+
+        # Validación
+        if not all([name, email, subject, message]):
+            return jsonify({"success": False, "error": "Faltan campos"}), 400
 
         body = f"""
 Nombre: {name}
@@ -47,7 +62,11 @@ Mensaje:
         server.sendmail(EMAIL_USER, EMAIL_USER, msg.as_string())
         server.quit()
 
-        return jsonify({"success": True})
+        return jsonify({"success": True}), 200
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        print(f"Error: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
