@@ -1,3 +1,19 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import smtplib
+from email.mime.text import MIMEText
+import os
+
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("EMAIL_PASS")
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route("/")
+def home():
+    return "Backend funcionando"
+
 @app.route("/send-email", methods=["POST","OPTIONS"])
 def send_email():
 
